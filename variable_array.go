@@ -28,7 +28,9 @@ func (a *VariableArray) Set(i int, val interface{}) {
 }
 
 func (a *VariableArray) Get(i int) interface{} {
-	a.expandIfNecessary(i)
+	if i+1 > len(a.slice) {
+		return nil
+	}
 	return a.slice[i]
 }
 
