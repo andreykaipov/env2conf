@@ -68,9 +68,14 @@ func sanitize(s string) interface{} {
 		return map[string]interface{}{}
 	case "[]":
 		return &VariableArray{}
+	case "null":
+		return nil
 	default:
 		if z, err := strconv.ParseFloat(s, bitSize); err == nil {
 			return z
+		}
+		if b, err := strconv.ParseBool(s); err == nil {
+			return b
 		}
 		if len(s) > 1 && s[0] == '"' && s[len(s)-1] == '"' {
 			s = s[1 : len(s)-1]
