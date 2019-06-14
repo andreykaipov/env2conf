@@ -1,18 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"strconv"
 )
 
-func main() {
-	prefix := []string{"config"}
-	if val, ok := os.LookupEnv("prefix"); ok {
-		prefix = strings.Split(val,",")
-	}
+var prefix string
+var output string
 
+func init() {
+	flag.StringVar(&prefix, "prefix", "config", "A comma-delimited list of prefixes to parse env vars on")
+	flag.StringVar(&output, "output", "json", "The output format, e.g. json, yaml, toml")
+	flag.Parse()
+}
+
+func main() {
+	prefixes := strings.Split(prefix, ",")
 	parsed := map[string]interface{}{}
 	mapsAsArrays := map[string]map[string]interface{}{}
 
@@ -20,7 +26,7 @@ func main() {
 		kv := strings.SplitN(line, "=", 2)
 		k := kv[0]
 		v := kv[1]
-		if len(prefix) == 0 || ! any(prefix, func(x string) bool { return strings.HasPrefix(k, x) }) {
+		if len(prefix) == 0 || ! any(prefixes, func(x string) bool { return strings.HasPrefix(k, x) }) {
 			continue
 		}
 		if err := parseLineAsMap(k, parsed, v, mapsAsArrays); err != nil {
@@ -36,7 +42,7 @@ func main() {
 		delete(v, ogPart)
 	}
 
-	switch output := os.Getenv("output"); output {
+	switch output {
 	case "toml":
 		printTOML(parsed)
 	case "yaml":
