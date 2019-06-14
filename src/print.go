@@ -15,7 +15,7 @@ func printJSON(data interface{}, indent int) {
 			if i < len(t)-1 {
 				fmt.Printf(",\n")
 			}
-			i += 1
+			i++
 		}
 		fmt.Printf("\n%*.s}", indent, " ")
 	case *VariableArray:

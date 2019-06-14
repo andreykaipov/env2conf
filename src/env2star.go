@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var prefix string
@@ -26,7 +26,7 @@ func main() {
 		kv := strings.SplitN(line, "=", 2)
 		k := kv[0]
 		v := kv[1]
-		if len(prefix) == 0 || ! any(prefixes, func(x string) bool { return strings.HasPrefix(k, x) }) {
+		if len(prefix) == 0 || !any(prefixes, func(x string) bool { return strings.HasPrefix(k, x) }) {
 			continue
 		}
 		if err := parseLineAsMap(k, parsed, v, mapsAsArrays); err != nil {
@@ -56,15 +56,17 @@ var bitSize = 32 + int(^uintptr(0)>>63<<5)
 
 // cleans up an env var value for use in our parsed maps and arrays
 func sanitize(s string) interface{} {
-	if z, err := strconv.ParseFloat(s, bitSize); err == nil {
-		return z
-	} else if s == "{}" {
+	switch s {
+	case "{}":
 		return map[string]interface{}{}
-	} else if s == "[]" {
+	case "[]":
 		return &VariableArray{}
-	} else {
+	default:
+		if z, err := strconv.ParseFloat(s, bitSize); err == nil {
+			return z
+		}
 		if len(s) > 1 && s[0] == '"' && s[len(s)-1] == '"' {
-			s = s[1:len(s)-1]
+			s = s[1 : len(s)-1]
 		}
 		return s
 	}
@@ -87,13 +89,13 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 			m[part] = map[string]interface{}{}
 		}
 		if _, ok := m[part].(map[string]interface{}); !ok {
-			return fmt.Errorf("Wanted to parse a map out of %s, but it was already parsed as a non-map: %v", fqkey, m[part])
+			return fmt.Errorf("wanted to parse a map out of %s, but it was already parsed as a non-map: %v", fqkey, m[part])
 		}
 
 		next := m[part].(map[string]interface{})
 		if strings.ContainsAny(part, "[") {
 			if err := parsePartAsArray(part, m, next); err != nil {
-				return fmt.Errorf("Failed to parse array out of %s: %s", fqkey, err)
+				return fmt.Errorf("failed to parse array out of %s: %s", fqkey, err)
 			}
 			mapsAsArrays[fqkey] = m
 		}
@@ -102,11 +104,11 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 
 	lastPart := parts[len(parts)-1]
 	if _, ok := m[lastPart]; ok {
-		return fmt.Errorf("Wanted to set %s=%s, but %s was already parsed as a map.", line, v, line)
+		return fmt.Errorf("wanted to set %s=%s, but %s was already parsed as a map", line, v, line)
 	}
 	if strings.ContainsAny(lastPart, "[") {
 		if err := parsePartAsArray(lastPart, m, sanitize(v)); err != nil {
-			return fmt.Errorf("Failed to parse array out of %s: %s", line, err)
+			return fmt.Errorf("failed to parse array out of %s: %s", line, err)
 		}
 	} else {
 		m[lastPart] = sanitize(v)
@@ -126,7 +128,7 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 		m[key] = &VariableArray{}
 	}
 	if _, ok := m[key].(*VariableArray); !ok {
-		return fmt.Errorf("Expected %s to be an array, but got: %v", key, m[key])
+		return fmt.Errorf("expected %s to be an array, but got: %v", key, m[key])
 	}
 	current := m[key].(*VariableArray)
 
@@ -134,7 +136,7 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 	for j, index := range indices {
 		i, err := strconv.Atoi(index)
 		if err != nil {
-			return fmt.Errorf("Found non-number %s in array index", index)
+			return fmt.Errorf("found non-number %s in array index", index)
 		}
 		nums[j] = i
 	}
@@ -145,7 +147,7 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 			current.Set(i, &VariableArray{})
 		}
 		if _, ok := current.Get(i).(*VariableArray); !ok {
-			return fmt.Errorf("Wanted to parse an array out of %s[%s], but it was: %v", key, strings.Join(indices[0:j+1],"]["), current.Get(i))
+			return fmt.Errorf("wanted to parse an array out of %s[%s], but it was: %v", key, strings.Join(indices[0:j+1], "]["), current.Get(i))
 		}
 		current = current.Get(i).(*VariableArray)
 	}
@@ -156,13 +158,13 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 		// a part "p[n0][n1]...[nj]" sharing common descendents with "p[n0][n1]...[nk]" in our env vars
 		// that was already parsed. Proof: If j<k, then we would have already failed in the loop above
 		// expecting m[p][n0][n1]...[nj] to be an array.
-		// 
+		//
 		// Now, if j>k, we can fail immediately since m[p][n0][n1]...[nk] cannot both be an array and
 		// a terminating value; e.g. a[0]=1 a[0][0]=2. More interestingly, if j=k, then we'd either have
 		// a duplicate env var (can't happen), or m[p][n0][n1]...[nk] was parsed as a map; e.g. a[0].a=1 a[0].b=2.
 		// So, fail on non-maps only:
 		if _, ok := val.(map[string]interface{}); !ok {
-			return fmt.Errorf("Wanted to set %s[%s]=%v; but %v is already there", key, strings.Join(indices,"]["), v, val)
+			return fmt.Errorf("wanted to set %s[%s]=%v; but %v is already there", key, strings.Join(indices, "]["), v, val)
 		}
 	}
 	current.Set(lastIndex, v)
