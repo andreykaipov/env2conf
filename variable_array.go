@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// VariableArray represents an array that is dynamically resized
-// whenever an a get or set is performed on an out-of-bounds index.
+// VariableArray represents an array that does not fail
+// whenever a get or set is performed on an out-of-bounds index.
 // Like JavaScript arrays <3 e.g.: a=[]; a[10]==undefined
 type VariableArray struct {
 	slice []interface{}
@@ -32,6 +32,10 @@ func (a *VariableArray) Get(i int) interface{} {
 		return nil
 	}
 	return a.slice[i]
+}
+
+func (a *VariableArray) Iterator() []interface{} {
+	return a.slice
 }
 
 func (a *VariableArray) Len() int {
