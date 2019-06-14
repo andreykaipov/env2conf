@@ -1,14 +1,50 @@
-
 package main
 
 import (
 	"fmt"
-	"encoding/json"
-	"log"
 	"os"
 	"strings"
 	"strconv"
 )
+
+func main() {
+	prefix := []string{"config"}
+	if val, ok := os.LookupEnv("prefix"); ok {
+		prefix = strings.Split(val,",")
+	}
+
+	parsed := map[string]interface{}{}
+	mapsAsArrays := map[string]map[string]interface{}{}
+
+	for _, line := range os.Environ() {
+		kv := strings.SplitN(line, "=", 2)
+		k := kv[0]
+		v := kv[1]
+		if len(prefix) == 0 || ! any(prefix, func(x string) bool { return strings.HasPrefix(k, x) }) {
+			continue
+		}
+		if err := parseLineAsMap(k, parsed, v, mapsAsArrays); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	}
+
+	// cleanup
+	for k, v := range mapsAsArrays {
+		parts := strings.Split(k, ".")
+		ogPart := parts[len(parts)-1]
+		delete(v, ogPart)
+	}
+
+	switch output := os.Getenv("output"); output {
+	case "toml":
+		printTOML(parsed)
+	case "yaml":
+		printYAML(parsed, 0)
+	default:
+		printJSON(parsed, 0)
+	}
+}
 
 var bitSize = 32 + int(^uintptr(0)>>63<<5)
 
@@ -28,74 +64,51 @@ func sanitize(s string) interface{} {
 	}
 }
 
-func main() {
-	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+// Given a line "a1.a2.a3...an", an existing map m, and a value v,
+// this function creates entries in m such that m["a1"]["a2"]...["an"]=v.
+// If an ai has a '[', it is parsed as an array as continues to be parsed as a map.
+// e.g. "a.b[5[3.c" will create m["a"]["b"][5][3]["c"] and m["a"]["b[5[3"]["c"]
+// This is done because we use the latter as a quick reference to what "a.b[5[3" might be.
+// To avoid this extra key in the output, we keep track of these funky maps in a map to delete them later.
+func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArrays map[string]map[string]interface{}) error {
+	parts := strings.Split(line, ".")
+	for i, part := range parts[:len(parts)-1] {
+		// for error messages and to store any maps parsed as arrays so we can delete their references later
+		fqkey := strings.Join(parts[0:i+1], ".")
 
-	prefixFilter := []string{"a", "b", "c", "d", "["}
-	parsed := map[string]interface{}{}
-	mapsAsArrays := map[string]map[string]interface{}{}
-
-	for _, line := range os.Environ() {
-		kv := strings.SplitN(line, "=", 2)
-		k := kv[0]
-		v := kv[1]
-		if ! any(prefixFilter, func(x string) bool { return strings.HasPrefix(k, x) }) {
-			continue
+		// check for existence and then the proper type
+		if _, ok := m[part]; !ok {
+			m[part] = map[string]interface{}{}
+		}
+		if _, ok := m[part].(map[string]interface{}); !ok {
+			return fmt.Errorf("Wanted to parse a map out of %s, but it was already parsed as a non-map: %v", fqkey, m[part])
 		}
 
-		current := parsed
-		parts := strings.Split(k, ".")
-
-		for i, part := range parts[:len(parts)-1] {
-			// for error messages and to store any maps parsed as arrays so we can delete their references later
-			fqkey := strings.Join(parts[0:i+1], ".")
-
-			// check for existence and then the proper type
-			if _, ok := current[part]; !ok {
-				current[part] = map[string]interface{}{}
+		next := m[part].(map[string]interface{})
+		if strings.ContainsAny(part, "[") {
+			if err := parsePartAsArray(part, m, next); err != nil {
+				return fmt.Errorf("Failed to parse array out of %s: %s", fqkey, err)
 			}
-			if _, ok := current[part].(map[string]interface{}); !ok {
-				log.Fatalf("Wanted to parse a map out of %s, but it was already parsed as a non-map: %s", fqkey, current[part])
-			}
-
-			next := current[part].(map[string]interface{})
-			if strings.ContainsAny(part, "[") {
-				if err := parsePartAsArray(part, current, next); err != nil {
-					log.Fatalf("Failed to parse array out of %s: %s", fqkey, err)
-				}
-				mapsAsArrays[fqkey] = current
-			}
-			current = next
+			mapsAsArrays[fqkey] = m
 		}
-
-		lastPart := parts[len(parts)-1]
-		if _, ok := current[lastPart]; ok {
-			log.Fatalf("Wanted to set %s=%s, but %s was already parsed as a map.", k, v, k)
-		}
-		if strings.ContainsAny(lastPart, "[") {
-			if err := parsePartAsArray(lastPart, current, sanitize(v)); err != nil {
-				log.Fatalf("Failed to parse array out of %s: %s", k, err)
-			}
-		} else {
-			current[lastPart] = sanitize(v)
-		}
+		m = next
 	}
 
-	// cleanup
-	for k, v := range mapsAsArrays {
-		parts := strings.Split(k, ".")
-		ogPart := parts[len(parts)-1]
-		delete(v, ogPart)
+	lastPart := parts[len(parts)-1]
+	if _, ok := m[lastPart]; ok {
+		return fmt.Errorf("Wanted to set %s=%s, but %s was already parsed as a map.", line, v, line)
 	}
-
-	s, err := prettyJson(parsed)
-	if err != nil {
-		log.Fatalf("Failed to marshal")
+	if strings.ContainsAny(lastPart, "[") {
+		if err := parsePartAsArray(lastPart, m, sanitize(v)); err != nil {
+			return fmt.Errorf("Failed to parse array out of %s: %s", line, err)
+		}
+	} else {
+		m[lastPart] = sanitize(v)
 	}
-	log.Println(s)
+	return nil
 }
 
-// Given a key "p[n0][n1]...[nk]", an existing map m, and a value v,
+// Given a part "p[n0][n1]...[nk]", an existing map m, and a value v,
 // this function creates entries in m such that m[p][n0][n1]...[nk]=v
 func parsePartAsArray(part string, m map[string]interface{}, v interface{}) error {
 	part = strings.ReplaceAll(part, "[", ".")
@@ -107,7 +120,7 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 		m[key] = &VariableArray{}
 	}
 	if _, ok := m[key].(*VariableArray); !ok {
-		return fmt.Errorf("Expected %s to be an array, but got: %s", key, m[key])
+		return fmt.Errorf("Expected %s to be an array, but got: %v", key, m[key])
 	}
 	current := m[key].(*VariableArray)
 
@@ -148,15 +161,6 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 	}
 	current.Set(lastIndex, v)
 	return nil
-}
-
-
-func prettyJson(data interface{}) (string, error) {
-	json, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	return string(json), nil
 }
 
 func any(xs []string, f func(string) bool) bool {
