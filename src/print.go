@@ -80,7 +80,7 @@ func printTOMLHelper(data interface{}) {
 		fmt.Printf("{")
 		i := 0
 		for k, v := range t {
-			fmt.Printf("%q = ", k)
+			fmt.Printf("%s = ", k)
 			printTOMLHelper(v)
 			if i < len(t)-1 {
 				fmt.Print(", ")
