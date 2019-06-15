@@ -11,9 +11,10 @@ expectfailure() {
 }
 
 expectsuccess() {
+    prefix="$1"; shift
     output="$1"; shift
     echo "$output: Expecting success from $@:"
-    env "$@" env2star -prefix 'a,b,c' -output "$output"
+    env "$@" env2star -prefix "$prefix" -output "$output"
     if [ $? != 0 ]; then
 	echo Failed
 	exit 1
@@ -81,6 +82,10 @@ expectfailure 'a[0]a=1'
 
 ## Successes
 
-expectsuccess json 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
-expectsuccess yaml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
-expectsuccess toml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix' # not actually valid toml
+# random junk
+expectsuccess a,b,c json 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
+expectsuccess a,b,c yaml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
+expectsuccess a,b,c toml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix' # not actually valid toml
+
+# empty prefix; outputs current environment
+expectsuccess '' json

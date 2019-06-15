@@ -33,7 +33,7 @@ func main() {
 		kv := strings.SplitN(line, "=", 2)
 		k := kv[0]
 		v := kv[1]
-		if len(prefix) == 0 || !any(prefixes, func(x string) bool { return strings.HasPrefix(k, x) }) {
+		if !any(prefixes, func(x string) bool { return strings.HasPrefix(k, x) }) {
 			continue
 		}
 		if err := parseLineAsMap(k, parsed, v, mapsAsArrays); err != nil {
