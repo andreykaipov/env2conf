@@ -53,6 +53,7 @@ func main() {
 	case "toml":
 		printTOML(parsed)
 	case "yaml":
+		fmt.Print("---")
 		printYAML(parsed, 0)
 	default:
 		printJSON(parsed, 0)
