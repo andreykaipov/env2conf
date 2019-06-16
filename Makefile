@@ -14,6 +14,7 @@ lint:
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin latest;\
 	fi;\
 	golangci-lint run --enable-all ./src
+	golint ./src
 	@echo All good!
 
 test: install build
