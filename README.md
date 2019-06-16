@@ -35,9 +35,26 @@ Available configuration outputs are:
   inputs = {cpu = [{}]}
   ```
 
+## installation
+
+Binaries are available for download from the [GitHub releases](https://github.com/andreykaipov/env2star/releases) page.
+For example:
+
+```console
+$ curl -Lo env2star https://github.com/andreykaipov/env2star/releases/download/v0.1.0/env2star-0.1.0-linux-amd64
+$ chmod +x env2star
+$ mv env2star /usr/local/bin
+```
+
+Alternatively, if you have Go installed:
+
+```console
+$ go get github.com/andreykaipov/env2star
+```
+
 ## development
 
-env2star is written in Go and has no dependencies other than the standard library.
+env2star is written in Go and has no external dependencies. Make is the build tool:
 
 ```console
 $ make
