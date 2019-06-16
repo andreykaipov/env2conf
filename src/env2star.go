@@ -37,7 +37,7 @@ func main() {
 			continue
 		}
 		if err := parseLineAsMap(k, parsed, v, mapsAsArrays); err != nil {
-			fmt.Println(err)
+			fmt.Printf("Failed parsing %s: %s\n", line, err)
 			os.Exit(1)
 		}
 	}
@@ -72,6 +72,9 @@ func sanitize(s string) interface{} {
 	case "null":
 		return nil
 	default:
+		if n, err := strconv.Atoi(s); err == nil {
+			return n
+		}
 		if z, err := strconv.ParseFloat(s, bitSize); err == nil {
 			return z
 		}
@@ -93,8 +96,9 @@ func sanitize(s string) interface{} {
 // To avoid this extra key in the output, we keep track of these funky maps in a map to delete them later.
 func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArrays map[string]map[string]interface{}) error {
 	parts := strings.Split(line, ".")
+
 	for i, part := range parts[:len(parts)-1] {
-		// for error messages and to store any maps parsed as arrays so we can delete their references later
+		// to store any maps parsed as arrays so we can delete their references later
 		fqkey := strings.Join(parts[0:i+1], ".")
 
 		// check for existence and then the proper type
@@ -102,13 +106,14 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 			m[part] = map[string]interface{}{}
 		}
 		if _, ok := m[part].(map[string]interface{}); !ok {
-			return fmt.Errorf("wanted to parse a map out of %s, but it was already parsed as a non-map: %v", fqkey, m[part])
+			// wanted to parse the part as a map, but it was already parsed as something else
+			return fmt.Errorf("%s is both map and %s", part, typeOf(m[part]))
 		}
 
 		next := m[part].(map[string]interface{})
 		if strings.ContainsAny(part, "[") {
 			if err := parsePartAsArray(part, m, next); err != nil {
-				return fmt.Errorf("failed to parse array out of %s: %s", fqkey, err)
+				return err
 			}
 			mapsAsArrays[fqkey] = m
 		}
@@ -116,15 +121,18 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 	}
 
 	lastPart := parts[len(parts)-1]
-	if _, ok := m[lastPart]; ok {
-		return fmt.Errorf("wanted to set %s=%s, but %s was already parsed as a map", line, v, line)
+	cleanVal := sanitize(v)
+
+	if val, ok := m[lastPart]; ok {
+		// wanted to set line to the terminating value, but it was already parsed as something else
+		return fmt.Errorf("%s is both %s and %s", lastPart, typeOf(cleanVal), typeOf(val))
 	}
 	if strings.ContainsAny(lastPart, "[") {
-		if err := parsePartAsArray(lastPart, m, sanitize(v)); err != nil {
-			return fmt.Errorf("failed to parse array out of %s: %s", line, err)
+		if err := parsePartAsArray(lastPart, m, cleanVal); err != nil {
+			return err
 		}
 	} else {
-		m[lastPart] = sanitize(v)
+		m[lastPart] = cleanVal
 	}
 	return nil
 }
@@ -132,16 +140,18 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 // Given a part "p[n0][n1]...[nk]", an existing map m, and a value v,
 // this function creates entries in m such that m[p][n0][n1]...[nk]=v
 func parsePartAsArray(part string, m map[string]interface{}, v interface{}) error {
-	part = strings.ReplaceAll(part, "[", ".")
-	part = strings.ReplaceAll(part, "]", "")
-	subparts := strings.Split(part, ".")
+	trimmed := part
+	trimmed = strings.ReplaceAll(trimmed, "[", ".")
+	trimmed = strings.ReplaceAll(trimmed, "]", "")
+	subparts := strings.Split(trimmed, ".")
 
 	key, indices := subparts[0], subparts[1:]
 	if _, ok := m[key]; !ok {
 		m[key] = &VariableArray{}
 	}
 	if _, ok := m[key].(*VariableArray); !ok {
-		return fmt.Errorf("expected %s to be an array, but got: %v", key, m[key])
+		// wanted to parse this part as an array, but it was already parsed as something else
+		return fmt.Errorf("%s is both array and %s", key, typeOf(m[key]))
 	}
 	current := m[key].(*VariableArray)
 
@@ -154,13 +164,14 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 		nums[j] = i
 	}
 
-	for j, i := range nums[:len(nums)-1] {
+	for _, i := range nums[:len(nums)-1] {
 		// similar to the map traversal, check for existence and the proper type until we get to the end
 		if val := current.Get(i); val == nil {
 			current.Set(i, &VariableArray{})
 		}
 		if _, ok := current.Get(i).(*VariableArray); !ok {
-			return fmt.Errorf("wanted to parse an array out of %s[%s], but it was: %v", key, strings.Join(indices[0:j+1], "]["), current.Get(i))
+			// wanted to parse the part as an array, but it was already parsed as something else
+			return fmt.Errorf("%s is both array and %s", part, typeOf(current.Get(i)))
 		}
 		current = current.Get(i).(*VariableArray)
 	}
@@ -172,12 +183,15 @@ func parsePartAsArray(part string, m map[string]interface{}, v interface{}) erro
 		// that was already parsed. Proof: If j<k, then we would have already failed in the loop above
 		// expecting m[p][n0][n1]...[nj] to be an array.
 		//
-		// Now, if j>k, we can fail immediately since m[p][n0][n1]...[nk] cannot both be an array and
+		// A nice corollary to that is if our environment is sorted, this should never happen! :-)
+		//
+		// However, if j>k, we can fail immediately since m[p][n0][n1]...[nk] cannot both be an array and
 		// a terminating value; e.g. a[0]=1 a[0][0]=2. More interestingly, if j=k, then we'd either have
 		// a duplicate env var (can't happen), or m[p][n0][n1]...[nk] was parsed as a map; e.g. a[0].a=1 a[0].b=2.
 		// So, fail on non-maps only:
 		if _, ok := val.(map[string]interface{}); !ok {
-			return fmt.Errorf("wanted to set %s[%s]=%v; but %v is already there", key, strings.Join(indices, "]["), v, val)
+			// wanted to set the line to the value, but it was already parsed as something else
+			return fmt.Errorf("%s is both %s and %s", part, typeOf(v), typeOf(val))
 		}
 	}
 	current.Set(lastIndex, v)
@@ -191,4 +205,16 @@ func any(xs []string, f func(string) bool) bool {
 		}
 	}
 	return false
+}
+
+// returns the simple type of an object
+func typeOf(v interface{}) string {
+	switch t := fmt.Sprintf("%T", v); t {
+	case fmt.Sprintf("%T", &VariableArray{}):
+		return "array"
+	case fmt.Sprintf("%T", map[string]interface{}{}):
+		return "map"
+	default:
+		return t
+	}
 }
