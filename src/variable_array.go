@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -58,21 +57,4 @@ func (a *VariableArray) String() string {
 		s = append(s, fmt.Sprintf("%v", v))
 	}
 	return "[" + strings.Join(s, " ") + "]"
-}
-
-func (a *VariableArray) MarshalJSON() ([]byte, error) {
-	b := []byte{'['}
-	count := len(a.slice)
-	for i, v := range a.slice {
-		marshalled, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
-		}
-		b = append(b, marshalled...)
-		if i < count-1 {
-			b = append(b, ',')
-		}
-	}
-	b = append(b, ']')
-	return b, nil
 }

@@ -64,20 +64,3 @@ func TestSet_Happy_Nested(t *testing.T) {
 		t.Errorf("Expected length of 2 for nested array")
 	}
 }
-
-func TestJSONMarshal_Happy(t *testing.T) {
-	a := &VariableArray{}
-	a.Set(0, "a")
-	a.Set(2, "b")
-	a.Set(3, &VariableArray{})
-	a.Get(3).(*VariableArray).Set(1, "c")
-	a.Get(3).(*VariableArray).Set(2, "d")
-	a.Get(3).(*VariableArray).Set(4, map[string]interface{}{"a": 1, "b": "a"})
-	json, err := a.MarshalJSON()
-	if err != nil {
-		t.Errorf("Expected JSON marshalling to not fail")
-	}
-	if string(json) != `["a",null,"b",[null,"c","d",null,{"a":1,"b":"a"}]]` {
-		t.Errorf("Expected JSON marshalling to produce the correct result")
-	}
-}
