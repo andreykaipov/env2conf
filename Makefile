@@ -18,6 +18,7 @@ lint:
 	@echo All good!
 
 test: build install
+	go test -v -count=1 ./src
 	PATH=$$PWD/bin:$$PATH ./test.sh
 
 release:
