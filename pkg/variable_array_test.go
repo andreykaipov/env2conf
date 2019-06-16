@@ -1,4 +1,4 @@
-package main
+package env2star
 
 import (
 	"testing"

@@ -1,7 +1,6 @@
-package main
+package env2star
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -9,23 +8,7 @@ import (
 	"strings"
 )
 
-var prefix string
-var output string
-var printVersion bool
-
-func init() {
-	flag.StringVar(&prefix, "prefix", "config", "A comma-delimited list of prefixes to parse env vars on")
-	flag.StringVar(&output, "output", "json", "The output format, e.g. json, yaml, toml")
-	flag.BoolVar(&printVersion, "version", false, "Print version and exit")
-	flag.Parse()
-}
-
-func main() {
-	if printVersion {
-		fmt.Printf("env2star %s (Git SHA: %s)\n", version, gitsha)
-		os.Exit(0)
-	}
-
+func Run(prefix string, output string) {
 	prefixes := strings.Split(prefix, ",")
 	parsed := map[string]interface{}{}
 	mapsAsArrays := map[string]map[string]interface{}{}
