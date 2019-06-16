@@ -47,7 +47,7 @@ func Run(prefix string, output string) {
 	}
 }
 
-var bitSize = 32 + int(^uintptr(0)>>63<<5)
+const bitSize = 32 + int(^uintptr(0)>>63<<5)
 
 // cleans up an env var value for use in our parsed maps and arrays
 func sanitize(s string) interface{} {
@@ -81,7 +81,7 @@ func sanitize(s string) interface{} {
 // e.g. "a.b[5[3.c" will create m["a"]["b"][5][3]["c"] and m["a"]["b[5[3"]["c"]
 // This is done because we use the latter as a quick reference to what "a.b[5[3" might be.
 // To avoid this extra key in the output, we keep track of these funky maps in a map to delete them later.
-func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArrays map[string]map[string]interface{}) error {
+func parseLineAsMap(line string, m map[string]interface{}, v string, toDelete map[string]map[string]interface{}) error {
 	parts := strings.Split(line, ".")
 
 	for i, part := range parts[:len(parts)-1] {
@@ -102,7 +102,7 @@ func parseLineAsMap(line string, m map[string]interface{}, v string, mapsAsArray
 			if err := parsePartAsArray(part, m, next); err != nil {
 				return err
 			}
-			mapsAsArrays[fqkey] = m
+			toDelete[fqkey] = m
 		}
 		m = next
 	}
