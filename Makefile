@@ -17,7 +17,7 @@ lint:
 	golint ./src
 	@echo All good!
 
-test: install build
+test: build install
 	PATH=$$PWD/bin:$$PATH ./test.sh
 
 release:
