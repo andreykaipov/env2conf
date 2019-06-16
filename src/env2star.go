@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -29,7 +30,10 @@ func main() {
 	parsed := map[string]interface{}{}
 	mapsAsArrays := map[string]map[string]interface{}{}
 
-	for _, line := range os.Environ() {
+	env := os.Environ()
+	sort.Sort(sort.Reverse(sort.StringSlice(env)))
+
+	for _, line := range env {
 		kv := strings.SplitN(line, "=", 2)
 		k := kv[0]
 		v := kv[1]
