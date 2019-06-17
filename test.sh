@@ -82,10 +82,20 @@ expectfailure 'a[0]a=1'
 
 ## Successes
 
+# empty prefix; outputs current environment
+expectsuccess '' json
+
 # random junk
 expectsuccess a,b,c json 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
 expectsuccess a,b,c yaml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix'
-expectsuccess a,b,c toml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][2].d=hey' 'c[0][1].d=false' 'c[1].abc=true' 'c[2]=null' 'd=notaprefix' # not actually valid toml
 
-# empty prefix; outputs current environment
-expectsuccess '' json
+expectsuccess a,d json 'a.b[0].c=2' 'd[0].b[0].c=2' 'd[0].b[1].d=3' 'd[0].b[2].x[0][0]=3' 'd[0].b[2].x[1][0].b=2'
+expectsuccess a,d toml 'a.b[0].c=2' 'd[0].b[0].c=2' 'd[0].b[1].d=3' 'd[0].b[2].x[0][0]=3' 'd[0].b[2].x[1][0].b=2'
+#expectsuccess a,d toml 'a.b[0]=1' 'a.b[1]=2'
+echo hi
+
+
+# doubly nested array whose elements are maps
+expectsuccess a,b,c json 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][0].d=hey' 'c[0][1].d=false' 'c[1][0].abc=true' 'd=notaprefix'
+expectsuccess a,b,c toml 'a={}' 'b.d=[]' 'b.e=1.2' 'c[0][0].d=hey' 'c[0][1].d=false' 'c[1][0].abc=true' 'd=notaprefix'
+

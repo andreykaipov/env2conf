@@ -38,7 +38,10 @@ func Run(prefix string, output string) {
 
 	switch output {
 	case "toml":
-		printTOML(parsed)
+		if err := printTOML(parsed); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 	case "yaml":
 		fmt.Print("---")
 		printYAML(parsed, 0)
