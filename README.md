@@ -41,7 +41,7 @@ Binaries are available for download from the [GitHub releases](https://github.co
 For example:
 
 ```console
-$ curl -Lo env2star https://github.com/andreykaipov/env2star/releases/download/v0.1.0/env2star-0.1.0-linux-amd64
+$ curl -Lo env2star https://github.com/andreykaipov/env2star/releases/download/v0.1.1/env2star-0.1.1-linux-amd64
 $ chmod +x env2star
 $ mv env2star /usr/local/bin
 ```
