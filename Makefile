@@ -23,6 +23,8 @@ release:
 		echo "Building $$out";\
 		GOOS=$$os GOARCH=amd64 CGO_ENABLED=0 go build -ldflags='-w -s -X main.gitsha=${gitsha}' -o $$out ${module};\
 	done
+
+compress:
 	upx --best bin/release/*
 
 clean:
