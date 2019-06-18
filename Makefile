@@ -9,7 +9,7 @@ build:
 
 lint:
 	golangci-lint run --enable-all ./...
-	golint ./...
+	if command -v golint >/dev/null; then golint ./...; else echo "golint isn't installed; skipping it"; fi
 	@echo All good!
 
 test: build
