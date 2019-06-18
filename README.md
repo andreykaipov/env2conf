@@ -1,5 +1,9 @@
 # env2star
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/andreykaipov/env2star)](https://goreportcard.com/report/github.com/andreykaipov/env2star)
+[![CircleCI](https://img.shields.io/circleci/build/github/andreykaipov/env2star/master.svg)](https://circleci.com/gh/andreykaipov/env2star)
+[![Wow Badges](https://img.shields.io/badge/wow-badges-blue.svg)](https://github.com/andreykaipov/env2star)
+
 env2star converts environment variables into configuration files.
 
 ## usage
