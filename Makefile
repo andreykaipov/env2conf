@@ -7,9 +7,6 @@ default: build
 build:
 	CGO_ENABLED=0 go build -ldflags='-w -s -X main.version=${version}+dev -X main.gitsha=${gitsha}' -o bin/env2star ${module}
 
-install:
-	install bin/env2star /usr/local/bin/env2star
-
 lint:
 	@if ! command -v golangci-lint >/dev/null; then\
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin latest;\
@@ -18,7 +15,7 @@ lint:
 	golint ./...
 	@echo All good!
 
-test: build install
+test: build
 	go test -v -count=1 ./...
 	PATH=$$PWD/bin:$$PATH ./test.sh
 
