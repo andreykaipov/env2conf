@@ -8,9 +8,6 @@ build:
 	CGO_ENABLED=0 go build -ldflags='-w -s -X main.version=${version}+dev -X main.gitsha=${gitsha}' -o bin/env2star ${module}
 
 lint:
-	@if ! command -v golangci-lint >/dev/null; then\
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin latest;\
-	fi;\
 	golangci-lint run --enable-all ./...
 	golint ./...
 	@echo All good!
