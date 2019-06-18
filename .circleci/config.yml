@@ -1,0 +1,34 @@
+version: 2.1
+
+workflows:
+  commit:
+    jobs:
+    - test
+  release:
+    jobs:
+    - hold:
+        type: approval
+    - release:
+        requires:
+        - hold
+
+jobs:
+  test:
+    docker:
+    - image: circleci/golang:1.12
+    steps:
+    - checkout 
+    - run: |
+        curl -sL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin latest
+        make lint
+    - run: make test
+    - run: make release
+  release:
+    docker:
+    - image: circleci/golang:1.12
+    steps:
+    - checkout 
+    - run: |
+        curl -Lo upx.tar.xz https://github.com/upx/upx/releases/download/v3.95/upx-3.95-amd64_linux.tar.xz
+        tar xfv upx.tar.xz --strip-components=1 -C $(go env GOPATH)/bin --wildcards '*/upx' 
+    - run: make release compress
