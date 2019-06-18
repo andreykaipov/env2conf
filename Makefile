@@ -1,5 +1,5 @@
 module := $(shell head -n1 go.mod | cut -d' ' -f2)
-version := $(shell grep -Eo '\d+\.\d+\.\d+' version.go)
+version := $(shell grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' version.go)
 gitsha := $(shell git rev-parse --short HEAD)
 
 default: build
