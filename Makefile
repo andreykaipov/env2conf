@@ -5,7 +5,7 @@ gitsha := $(shell git rev-parse --short HEAD)
 default: build
 
 build:
-	CGO_ENABLED=0 go build -ldflags='-w -s -X main.version=${version}+dev -X main.gitsha=${gitsha}' -o bin/env2star ${module}
+	CGO_ENABLED=0 go build -ldflags='-w -s -X main.version=${version}+dev -X main.gitsha=${gitsha}' -o bin/env2conf ${module}
 
 lint:
 	golangci-lint run --enable-all ./...
@@ -19,7 +19,7 @@ test: build
 release:
 	@for os in linux darwin windows; do\
 		if [ $$os = "windows" ]; then ext=".exe"; fi;\
-		out="bin/release/env2star-${version}-$$os-amd64$$ext";\
+		out="bin/release/env2conf-${version}-$$os-amd64$$ext";\
 		echo "Building $$out";\
 		GOOS=$$os GOARCH=amd64 CGO_ENABLED=0 go build -ldflags='-w -s -X main.gitsha=${gitsha}' -o $$out ${module};\
 	done

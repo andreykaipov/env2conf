@@ -2,7 +2,7 @@
 
 expectfailure() {
     echo "Expecting failure from $@:"
-    env "$@" env2star -prefix 'a,b'
+    env "$@" env2conf -prefix 'a,b'
     if [ $? != 1 ]; then
 	echo Failed
 	exit 1
@@ -14,7 +14,7 @@ expectsuccess() {
     prefix="$1"; shift
     output="$1"; shift
     echo "$output: Expecting success from $@:"
-    env "$@" env2star -prefix "$prefix" -output "$output"
+    env "$@" env2conf -prefix "$prefix" -output "$output"
     if [ $? != 0 ]; then
 	echo Failed
 	exit 1

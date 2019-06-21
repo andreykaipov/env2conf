@@ -1,4 +1,4 @@
-package env2star
+package env2conf
 
 import (
 	"testing"

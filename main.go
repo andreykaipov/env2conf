@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	env2star "github.com/andreykaipov/env2star/pkg"
+	env2conf "github.com/andreykaipov/env2conf/pkg"
 )
 
 func main() {
@@ -19,9 +19,9 @@ func main() {
 	flag.Parse()
 
 	if printVersion {
-		fmt.Printf("env2star %s (Git SHA: %s)\n", version, gitsha)
+		fmt.Printf("env2conf %s (Git SHA: %s)\n", version, gitsha)
 		os.Exit(0)
 	}
 
-	env2star.Run(prefix, output)
+	env2conf.Run(prefix, output)
 }
